@@ -107,7 +107,7 @@ app.post("/quotation", (request, response) => {
 
     let db = new sqlite3.Database("db/packersbilty");
 
-    const insertQuery = "INSERT INTO quotation (quotationEmail, quotationQuotation, quotationMovingType, quotationCompanyParty, quotationPartyName, quotationPhone, quotationDate, quotationPackingDate, quotationDeliveryDate, quotationCountry, quotationStates, quotationCity, quotationPinCode, quotationAddress, quotationFloor, quotationLift, quotationfCountry, quotationfStates, quotationfCity, quotationfPincode, quotationfAddress, quotationfFloor, quotationfLift, quotationfreightCharge, quotationAdvancePaid, quotationPackingCharge, quotationunPackingCharge, quotationLoadingCharge, quotationunLoadingCharge, quotationPackingMaterialCharge, quotationStorageCharge, quotationCarTPT, quotationMiscellCharge, quotationOtherCharge, quotationstCharge, quotationGreenTax, quotationSurCharge, quotationGSTQuote, quotationGST,  quotationGSTType, quotationRemark, quotationDiscount, quotationInsuranceType, quotationInsuranceCharge, quotationfGST, quotationDeclaration, quotationfInsuranceType, quotationfInsuranceCharge, quotationffGst, quotationfDeclaration, quotationLoad, quotationDown, quotationfLoad, quotationNeed, items)  VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    const insertQuery = "INSERT INTO quotation (quotationEmail, quotationQuotation, quotationMovingType, quotationCompanyParty, quotationPartyName, quotationPhone, quotationDate, quotationPackingDate, quotationDeliveryDate, quotationCountry, quotationStates, quotationCity, quotationPinCode, quotationAddress, quotationFloor, quotationLift, quotationfCountry, quotationfStates, quotationfCity, quotationfPincode, quotationfAddress, quotationfFloor, quotationfLift, quotationfreightCharge, quotationAdvancePaid, quotationPackingCharge, quotationunPackingCharge, quotationLoadingCharge, quotationunLoadingCharge, quotationPackingMaterialCharge, quotationStorageCharge, quotationCarTPT, quotationMiscellCharge, quotationOtherCharge, quotationstCharge, quotationGreenTax, quotationSurCharge, quotationGSTQuote, quotationGST,  quotationGSTType, quotationRemark, quotationDiscount, quotationInsuranceType, quotationInsuranceCharge, quotationfGST, quotationDeclaration, quotationfInsuranceType, quotationfInsuranceCharge, quotationffGst, quotationfDeclaration, quotationLoad, quotationDown, quotationfLoad, quotationNeed)  VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     const values = [
         newQuotation.quotationEmail,
@@ -163,26 +163,87 @@ app.post("/quotation", (request, response) => {
         newQuotation.quotationLoad,
         newQuotation.quotationDown,
         newQuotation.quotationfLoad,
-        newQuotation.quotationNeed,
-        newQuotation.items
+        newQuotation.quotationNeed
     ];
 
-    db.run(insertQuery, values, (err) => {
+    db.run(insertQuery, values, (err, res) => {
         if (err) {
             response.json({
                 message: err.message,
             });
         } else {
-            response.json({
-                message: "Successfully inserted data ",
-            });
+            console.log("successfully saved" + res);
+            // Find the inserted row number
+            const findInsertRowQuery = "select seq from sqlite_sequence where name = 'quotation'";
+
+            db.all(findInsertRowQuery, [], (err, rows) => {
+                if (err) {
+                    response.json({
+                        message: err.message,
+                    });
+                } else {
+                    console.log("found the inserted row -" + rows[0].seq);
+                    const newQuotationId = rows[0].seq;
+                    newQuotation.items.forEach(singleItem => {
+                        addItems(singleItem, newQuotationId);
+                        console.log("items inserted into database")
+                    });
+
+                    // const quotation = rows.map((singleRow) => {
+                    //     return {
+                    //         id: singleRow.id,
+                    //         quotationPartName: singleRow.quotationPartName,
+                    //         quotationQuantity: singleRow.quotationQuantity,
+                    //         quotationfValue: singleRow.quotationfValue,
+                    //         quotationfRemark: singleRow.quotationfRemark,
+                    //         quotationId: singleRow.quotationId
+
+                    //     };
+                    // });
+
+                    // response.json(quotation);
+                }
+
+
+                response.json({
+                    message: "Successfully inserted data ",
+                });
+            })
         }
     });
     // db connection close
     db.close();
 });
 
+const addItems = (singleItem, quotationId) => {
+    console.log("[addItems]" + singleItem);
+    let db = new sqlite3.Database("db/packersbilty");
 
+    const insertQuery = "INSERT INTO items (quotationPartName, quotationQuantity, quotationfValue, quotationfRemark, quotationId)  VALUES ( ?, ?, ?, ?, ?)";
+
+    const values = [
+        singleItem.quotationPartName,
+        singleItem.quotationQuantity,
+        singleItem.quotationfValue,
+        singleItem.quotationfRemark,
+        quotationId
+    ];
+
+    db.run(insertQuery, values, (err) => {
+        if (err) {
+            return ({
+                message: err.message,
+            });
+        } else {
+            return ({
+                message: "Successfully inserted data ",
+            });
+        }
+    });
+    // db connection close
+    db.close();
+
+}
 app.post("/items", (request, response) => {
     const newQuotation = request.body;
 
